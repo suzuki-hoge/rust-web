@@ -1,3 +1,4 @@
+use crate::tcp::request::parse_request;
 use std::io::{Error, Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
 
@@ -20,8 +21,8 @@ fn handle(mut stream: TcpStream) -> Result<(), Error> {
 
     let _ = stream.read(&mut buf)?;
 
-    let request: String = String::from_utf8_lossy(&buf[..]).to_string();
-    println!("{}", request);
+    let request = parse_request(String::from_utf8_lossy(&buf[..]));
+    println!("{:?}", &request);
 
     let response = "HTTP/1.1 200 OK\r\n";
     let _ = stream.write(response.as_bytes())?;
