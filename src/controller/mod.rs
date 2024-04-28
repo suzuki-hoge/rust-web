@@ -1,3 +1,5 @@
+use std::convert::identity;
+
 use Method::{Get, Post};
 
 use crate::tcp::request::{Method, Request};
@@ -32,9 +34,10 @@ pub fn route(request: &Request) -> ControllerResult {
         (&Get, "/item/all") => item_controller::all(),
         (&Post, "/item/create") => match request.parameter.get("code") {
             Ok(code) => item_controller::create(code),
-            Err(e) => ControllerResult::bad_request(e),
+            Err(e) => Ok(ControllerResult::bad_request(e)),
         },
-        (&Get, "/error") => ControllerResult::internal_server_error("foo error"),
-        _ => ControllerResult::not_found(),
+        (&Get, "/error") => Ok(ControllerResult::internal_server_error("foo error")),
+        _ => Ok(ControllerResult::not_found()),
     }
+    .map_or_else(ControllerResult::internal_server_error, identity)
 }
