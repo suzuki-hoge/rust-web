@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 use itertools::Itertools;
 
@@ -7,16 +7,16 @@ use crate::tcp::request::Parameter::{Form, Json, Nothing};
 type Key = String;
 type Val = String;
 
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Debug)]
 pub struct Request {
-    pub method: String,
+    pub method: Method,
     pub target: String,
     pub version: String,
     pub headers: Vec<(Key, Val)>,
     pub parameter: Parameter,
 }
 
-impl Debug for Request {
+impl Display for Request {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -31,6 +31,35 @@ impl Debug for Request {
                 Nothing => String::from(""),
             }
         )
+    }
+}
+
+#[derive(Eq, PartialEq, Debug)]
+pub enum Method {
+    Get,
+    Post,
+}
+
+impl Display for Method {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Get => "GET",
+                Self::Post => "POST",
+            }
+        )
+    }
+}
+
+impl Method {
+    fn from<S: Into<String>>(s: S) -> Self {
+        match s.into().to_ascii_lowercase().as_str() {
+            "get" => Self::Get,
+            "post" => Self::Post,
+            _ => panic!("unexpected method token"),
+        }
     }
 }
 
@@ -62,9 +91,9 @@ pub fn parse_request<S: Into<String>>(raw: S) -> Request {
     Request { method, target, version, headers, parameter }
 }
 
-fn parse_start_line(line: &str) -> (String, String, String) {
+fn parse_start_line(line: &str) -> (Method, String, String) {
     let sp = line.split(' ').collect_vec();
-    (sp[0].to_string(), sp[1].to_string(), sp[2].to_string())
+    (Method::from(sp[0]), sp[1].to_string(), sp[2].to_string())
 }
 
 fn parse_header_lines(lines: &[&str]) -> Vec<(Key, Val)> {
@@ -95,7 +124,7 @@ fn parse_form(line: &str) -> Parameter {
 #[cfg(test)]
 mod tests {
     use crate::tcp::request::Parameter::{Form, Json, Nothing};
-    use crate::tcp::request::{parse_request, Request};
+    use crate::tcp::request::{parse_request, Method, Request};
 
     #[test]
     fn test_form_body() {
@@ -109,7 +138,7 @@ name=John&age=39",
         );
 
         let exp = Request {
-            method: String::from("POST"),
+            method: Method::from("post"),
             target: String::from("/foo/bar"),
             version: String::from("HTTP/1.1"),
             headers: vec![
@@ -137,7 +166,7 @@ content-type: application/json
         );
 
         let exp = Request {
-            method: String::from("POST"),
+            method: Method::from("post"),
             target: String::from("/foo/bar"),
             version: String::from("HTTP/1.1"),
             headers: vec![
@@ -161,7 +190,7 @@ Accept: */*
         );
 
         let exp = Request {
-            method: String::from("GET"),
+            method: Method::from("get"),
             target: String::from("/foo/bar"),
             version: String::from("HTTP/1.1"),
             headers: vec![(String::from("accept"), String::from("*/*"))],

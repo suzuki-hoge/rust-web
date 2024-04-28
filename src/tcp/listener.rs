@@ -23,11 +23,11 @@ fn handle(mut stream: TcpStream) -> Result<(), Error> {
     let _ = stream.read(&mut buf)?;
 
     let request = parse_request(String::from_utf8_lossy(&buf[..]));
-    println!("{:?}", &request);
+    println!("{}", &request);
 
     let (status_code, content) = (200, String::from(r#"{"result": "ok"}"#));
     let response = Response { status_code, content };
-    println!("{:?}", &response);
+    println!("{}", &response);
 
     let _ = stream.write(&response.into_bytes())?;
     stream.flush()?;
