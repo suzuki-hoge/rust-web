@@ -2,6 +2,8 @@ use std::fmt::{Debug, Display, Formatter};
 
 use itertools::Itertools;
 
+use Method::{Get, Post};
+
 use crate::tcp::request::Parameter::{Form, Json, Nothing};
 
 type Key = String;
@@ -46,8 +48,8 @@ impl Display for Method {
             f,
             "{}",
             match self {
-                Self::Get => "GET",
-                Self::Post => "POST",
+                Get => "GET",
+                Post => "POST",
             }
         )
     }
@@ -56,8 +58,8 @@ impl Display for Method {
 impl Method {
     fn from<S: Into<String>>(s: S) -> Self {
         match s.into().to_ascii_lowercase().as_str() {
-            "get" => Self::Get,
-            "post" => Self::Post,
+            "get" => Get,
+            "post" => Post,
             _ => panic!("unexpected method token"),
         }
     }
@@ -68,6 +70,18 @@ pub enum Parameter {
     Form { values: Vec<(Key, Val)> },
     Json { value: String },
     Nothing,
+}
+
+impl Parameter {
+    pub fn get<S: Into<Key>>(&self, key: S) -> Result<&Val, String> {
+        let key = key.into();
+        match self {
+            Form { values } => values.iter().find(|(k, _)| k == &key).map(|(_, v)| v),
+            Json { value: _ } => None, // lazy hacking
+            Nothing => None,
+        }
+        .ok_or(format!("no such parameter [ key = {} ]", key))
+    }
 }
 
 pub fn parse_request<S: Into<String>>(raw: S) -> Request {

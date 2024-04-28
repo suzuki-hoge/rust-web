@@ -1,10 +1,14 @@
 use std::io::{Error, Read, Write};
 use std::net::{IpAddr, SocketAddr, TcpListener, TcpStream};
 
-use crate::tcp::request::parse_request;
+use crate::controller::ControllerResult;
+use crate::tcp::request::{parse_request, Request};
 use crate::tcp::response::Response;
 
-pub fn run(ip_addr: IpAddr, port: u16) -> Result<(), Error> {
+pub fn run<F>(ip_addr: IpAddr, port: u16, route: F) -> Result<(), Error>
+where
+    F: Fn(&Request) -> ControllerResult,
+{
     let socket = TcpListener::bind(SocketAddr::new(ip_addr, port))?;
 
     println!("socket start");
@@ -12,20 +16,23 @@ pub fn run(ip_addr: IpAddr, port: u16) -> Result<(), Error> {
         let stream = stream?;
 
         println!("accepted");
-        handle(stream)?;
+        handle(stream, &route)?;
     }
 
     Ok(())
 }
 
-fn handle(mut stream: TcpStream) -> Result<(), Error> {
+fn handle<F>(mut stream: TcpStream, route: &F) -> Result<(), Error>
+where
+    F: Fn(&Request) -> ControllerResult,
+{
     let mut buf = [0; 1024];
     let _ = stream.read(&mut buf)?;
 
     let request = parse_request(String::from_utf8_lossy(&buf[..]));
     println!("{}", &request);
 
-    let (status_code, content) = (200, String::from(r#"{"result": "ok"}"#));
+    let ControllerResult { status_code, content } = route(&request);
     let response = Response { status_code, content };
     println!("{}", &response);
 
