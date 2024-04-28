@@ -1,4 +1,17 @@
 #
+# docker
+#
+
+up:
+	@docker compose up --build --detach
+
+down:
+	@docker compose down
+
+db:
+	@docker compose exec db mysql -h localhost -u app -psecret sales
+
+#
 # cargo
 #
 

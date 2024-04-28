@@ -1,0 +1,15 @@
+services:
+  db:
+    image: mysql:8.2.0
+    ports:
+      - 13306:3306
+    environment:
+      TZ: Asia/Tokyo
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: app
+      MYSQL_PASSWORD: secret
+      MYSQL_DATABASE: sales
+    volumes:
+      - type: bind
+        source: ./docker/init
+        target: /docker-entrypoint-initdb.d
