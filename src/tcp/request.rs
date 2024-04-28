@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 
 use itertools::Itertools;
@@ -14,7 +15,7 @@ pub struct Request {
     pub method: Method,
     pub target: String,
     pub version: String,
-    pub headers: Vec<(Key, Val)>,
+    pub headers: HashMap<Key, Val>,
     pub parameter: Parameter,
 }
 
@@ -67,7 +68,7 @@ impl Method {
 
 #[derive(Eq, PartialEq, Debug)]
 pub enum Parameter {
-    Form { values: Vec<(Key, Val)> },
+    Form { values: HashMap<Key, Val> },
     Json { value: String },
     Nothing,
 }
@@ -76,7 +77,7 @@ impl Parameter {
     pub fn get<S: Into<Key>>(&self, key: S) -> Result<&Val, String> {
         let key = key.into();
         match self {
-            Form { values } => values.iter().find(|(k, _)| k == &key).map(|(_, v)| v),
+            Form { values } => values.get(&key),
             Json { value: _ } => None, // lazy hacking
             Nothing => None,
         }
@@ -110,7 +111,7 @@ fn parse_start_line(line: &str) -> (Method, String, String) {
     (Method::from(sp[0]), sp[1].to_string(), sp[2].to_string())
 }
 
-fn parse_header_lines(lines: &[&str]) -> Vec<(Key, Val)> {
+fn parse_header_lines(lines: &[&str]) -> HashMap<Key, Val> {
     lines
         .iter()
         .map(|line| {
@@ -120,8 +121,8 @@ fn parse_header_lines(lines: &[&str]) -> Vec<(Key, Val)> {
         .collect()
 }
 
-fn detect_content_type(headers: &[(Key, Val)]) -> Option<&str> {
-    headers.iter().filter(|&(k, _)| k == &"content-type".to_string()).map(|(_, v)| v.as_str()).next()
+fn detect_content_type(headers: &HashMap<Key, Val>) -> Option<&str> {
+    headers.get("content-type").map(|s| s.as_str())
 }
 
 fn parse_form(line: &str) -> Parameter {
@@ -159,9 +160,13 @@ name=John&age=39",
                 (String::from("accept"), String::from("*/*")),
                 (String::from("content-length"), String::from("16")),
                 (String::from("content-type"), String::from("application/x-www-form-urlencoded")),
-            ],
+            ]
+            .into_iter()
+            .collect(),
             parameter: Form {
-                values: vec![(String::from("name"), String::from("John")), (String::from("age"), String::from("39"))],
+                values: vec![(String::from("name"), String::from("John")), (String::from("age"), String::from("39"))]
+                    .into_iter()
+                    .collect(),
             },
         };
 
@@ -187,7 +192,9 @@ content-type: application/json
                 (String::from("accept"), String::from("*/*")),
                 (String::from("content-length"), String::from("27")),
                 (String::from("content-type"), String::from("application/json")),
-            ],
+            ]
+            .into_iter()
+            .collect(),
             parameter: Json { value: String::from(r#"{"name": "John", "age": 39}"#) },
         };
 
@@ -207,7 +214,7 @@ Accept: */*
             method: Method::from("get"),
             target: String::from("/foo/bar"),
             version: String::from("HTTP/1.1"),
-            headers: vec![(String::from("accept"), String::from("*/*"))],
+            headers: vec![(String::from("accept"), String::from("*/*"))].into_iter().collect(),
             parameter: Nothing,
         };
 
