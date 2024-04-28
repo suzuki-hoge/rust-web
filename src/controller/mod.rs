@@ -1,6 +1,5 @@
-use std::convert::identity;
-
 use Method::{Get, Post};
+use crate::database::mysql::Pool;
 
 use crate::tcp::request::{Method, Request};
 
@@ -29,15 +28,17 @@ impl ControllerResult {
     }
 }
 
-pub fn route(request: &Request) -> ControllerResult {
+pub fn route(request: &Request) -> Result<ControllerResult, String> {
+    let mut pool = Pool::new("localhost", "13306", "app", "secret", "sales");
+    let mut conn= pool.connect()?;
+
     match (&request.method, request.target.as_str()) {
-        (&Get, "/item/all") => item_controller::all(),
+        (&Get, "/item/all") => item_controller::all(&mut conn),
         (&Post, "/item/create") => match request.parameter.get("code") {
-            Ok(code) => item_controller::create(code),
+            Ok(code) => item_controller::create(&mut conn, code),
             Err(e) => Ok(ControllerResult::bad_request(e)),
         },
         (&Get, "/error") => Ok(ControllerResult::internal_server_error("foo error")),
         _ => Ok(ControllerResult::not_found()),
     }
-    .map_or_else(ControllerResult::internal_server_error, identity)
 }
