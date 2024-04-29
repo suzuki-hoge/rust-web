@@ -1,6 +1,5 @@
 use serde::Serialize;
-use std::thread;
-use std::time::Duration;
+use std::sync::Arc;
 
 use Method::{Get, Post};
 
@@ -70,20 +69,15 @@ impl Failure {
     }
 }
 
-pub fn route(request: &Request) -> Result<ControllerResult, String> {
-    let mut pool = Pool::new("localhost", "13306", "app", "secret", "sales");
-
+pub fn route(pool: Arc<Pool>, request: &Request) -> Result<ControllerResult, String> {
     match (&request.method, request.target.as_str()) {
-        (&Get, "/item/all") => item_controller::all(&mut pool),
+        (&Get, "/item/all") => item_controller::all(pool),
         (&Post, "/item/create") => match request.parameter.get("code") {
-            Ok(code) => item_controller::create(&mut pool, code),
+            Ok(code) => item_controller::create(pool, code),
             Err(e) => Ok(ControllerResult::bad_request(e)),
         },
         (&Get, "/error") => Ok(ControllerResult::internal_server_error("foo error")),
-        (&Get, "/sleep") => {
-            thread::sleep(Duration::from_secs(3));
-            Ok(ControllerResult::ok("3 seconds slept"))
-        }
+        (&Get, "/sleep") => item_controller::sleep(pool),
         _ => Ok(ControllerResult::not_found()),
     }
 }
