@@ -7,7 +7,12 @@ pub struct Response {
 
 impl Display for Response {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Response {{ HTTP/1.1 {} {} }}", self.status_code, self.content)
+        let content = if 80 < self.content.len() {
+            &format!("{} ...", &self.content[..80])
+        } else {
+            &self.content
+        };
+        write!(f, "HTTP/1.1 {} {}", self.status_code, content)
     }
 }
 

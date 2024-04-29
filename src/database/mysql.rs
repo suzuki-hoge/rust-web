@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::cache::memory::Memory;
 use crate::cache::Cache;
+use crate::logger::Logger;
+use crate::LOGGER;
 
 pub struct Pool {
     manager: MySqlConnectionManager,
@@ -28,12 +30,16 @@ impl Pool {
         R: FromRow + Serialize + for<'a> Deserialize<'a>,
     {
         if let Some(cached) = self.cache.get("item") {
+            LOGGER.info("from cache");
+
             Ok(cached)
         } else {
             let mut conn = self.connect()?;
             let found = conn.query(query)?;
 
             self.cache.set("item", &found);
+
+            LOGGER.info(format!("from database [ connection = {} ]", conn.connection_id()));
 
             Ok(found)
         }
