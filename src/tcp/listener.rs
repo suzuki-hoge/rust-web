@@ -16,8 +16,8 @@ where
 
     LOGGER.info("socket start");
 
-    let thread_pool = thread::pool::Pool::new(2);
-    let connection_pool = Arc::new(database::mysql::Pool::new("localhost", "13306", "app", "secret", "sales"));
+    let thread_pool = thread::pool::Pool::new(3);
+    let connection_pool = Arc::new(database::mysql::Pool::new("localhost", "13306", "app", "secret", "sales", 2));
     let route = Arc::new(route);
 
     for stream in socket.incoming() {

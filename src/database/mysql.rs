@@ -1,9 +1,10 @@
+use std::sync::{Mutex, MutexGuard};
+
 use r2d2_mysql::mysql::prelude::{FromRow, Queryable};
 use r2d2_mysql::mysql::{Conn, Opts, OptsBuilder, Transaction, TxOpts};
 use r2d2_mysql::r2d2::ManageConnection;
 use r2d2_mysql::{mysql, MySqlConnectionManager};
 use serde::{Deserialize, Serialize};
-use std::sync::{Mutex, MutexGuard};
 
 use crate::cache::memory::Memory;
 use crate::cache::Cache;
@@ -11,19 +12,22 @@ use crate::logger::Logger;
 use crate::LOGGER;
 
 pub struct Pool {
-    conn: Mutex<Conn>,
+    connections: Vec<Mutex<Conn>>,
     cache: Memory,
 }
 
 impl Pool {
-    pub fn new(host: &str, port: &str, user: &str, pass: &str, db: &str) -> Self {
+    pub fn new(host: &str, port: &str, user: &str, pass: &str, db: &str, limit: usize) -> Self {
         let opts = Opts::from_url(&format!("mysql://{}:{}@{}:{}/{}", user, pass, host, port, db)).unwrap();
         let builder = OptsBuilder::from_opts(opts);
         let manager = MySqlConnectionManager::new(builder);
 
-        let conn = Mutex::new(manager.connect().unwrap());
+        let mut connections = Vec::with_capacity(limit);
+        for _ in 0..limit {
+            connections.push(Mutex::new(manager.connect().unwrap()));
+        }
 
-        Self { conn, cache: Memory::new() }
+        Self { connections, cache: Memory::new() }
     }
 
     pub fn select<R>(&self, query: &str) -> mysql::error::Result<Vec<R>>
@@ -59,6 +63,12 @@ impl Pool {
     }
 
     fn get_conn(&self) -> MutexGuard<Conn> {
-        self.conn.lock().unwrap()
+        loop {
+            for m in &self.connections {
+                if let Ok(mg) = m.try_lock() {
+                    return mg;
+                }
+            }
+        }
     }
 }
