@@ -8,7 +8,7 @@ use crate::tcp::request::{parse_request, Request};
 use crate::tcp::response::Response;
 use crate::{database, thread, LOGGER};
 
-pub fn run<F>(ip_addr: IpAddr, port: u16, route: F) -> std::io::Result<()>
+pub fn run<F>(ip_addr: IpAddr, port: u16, thread: u8, connection: u8, route: F) -> std::io::Result<()>
 where
     F: Fn(Arc<database::mysql::Pool>, &Request) -> Result<ControllerResult, String> + 'static + Send + Sync,
 {
@@ -16,8 +16,9 @@ where
 
     LOGGER.info("socket start");
 
-    let thread_pool = thread::pool::Pool::new(3);
-    let connection_pool = Arc::new(database::mysql::Pool::new("localhost", "13306", "app", "secret", "sales", 2));
+    let thread_pool = thread::pool::Pool::new(thread);
+    let connection_pool =
+        Arc::new(database::mysql::Pool::new("localhost", "13306", "app", "secret", "sales", connection));
     let route = Arc::new(route);
 
     for stream in socket.incoming() {

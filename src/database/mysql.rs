@@ -17,15 +17,17 @@ pub struct Pool {
 }
 
 impl Pool {
-    pub fn new(host: &str, port: &str, user: &str, pass: &str, db: &str, limit: usize) -> Self {
+    pub fn new(host: &str, port: &str, user: &str, pass: &str, db: &str, limit: u8) -> Self {
         let opts = Opts::from_url(&format!("mysql://{}:{}@{}:{}/{}", user, pass, host, port, db)).unwrap();
         let builder = OptsBuilder::from_opts(opts);
         let manager = MySqlConnectionManager::new(builder);
 
-        let mut connections = Vec::with_capacity(limit);
+        let mut connections = Vec::with_capacity(limit as usize);
         for _ in 0..limit {
             connections.push(Mutex::new(manager.connect().unwrap()));
         }
+
+        LOGGER.info(format!("init {} connections", limit));
 
         Self { connections, cache: Memory::new() }
     }

@@ -12,16 +12,18 @@ pub struct Pool {
 }
 
 impl Pool {
-    pub fn new(limit: usize) -> Self {
+    pub fn new(limit: u8) -> Self {
         assert!(0 < limit);
 
         let (sender, receiver) = channel();
         let receiver = Arc::new(Mutex::new(receiver));
 
-        let mut _workers = Vec::with_capacity(limit);
+        let mut _workers = Vec::with_capacity(limit as usize);
         for _ in 0..limit {
             _workers.push(Worker::new(receiver.clone()));
         }
+
+        LOGGER.info(format!("init {} threads", limit));
 
         Self { _workers, sender }
     }

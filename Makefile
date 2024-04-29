@@ -16,7 +16,7 @@ db:
 #
 
 run:
-	@cargo run
+	@cargo run -- --thread 2 --connection 2
 
 test:
 	@cargo test
