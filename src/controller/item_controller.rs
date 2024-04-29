@@ -7,16 +7,16 @@ use crate::controller::ControllerResult;
 use crate::database::mysql::Pool;
 
 pub fn all(pool: &mut Pool) -> Result<ControllerResult, String> {
-    let items: Vec<Item> = pool.select("select code, created from item").map_err(|e| e.to_string())?;
+    let items: Vec<Item> = pool.select("select code, at from item").map_err(|e| e.to_string())?;
 
     Ok(ControllerResult::ok(items))
 }
 
 pub fn create(pool: &mut Pool, code: &str) -> Result<ControllerResult, String> {
-    let item = Item { code: code.to_owned(), created: Local::now().format("%Y/%m/%d %H:%M:%S").to_string() };
+    let item = Item { code: code.to_owned(), at: Local::now().format("%Y/%m/%d %H:%M:%S").to_string() };
 
     pool.with_tx(|tx| {
-        tx.exec_drop("insert item ( code, created ) values ( :code, :created )", vec![&item.code, &item.created])
+        tx.exec_drop("insert item ( code, at ) values ( :code, :at )", vec![&item.code, &item.at])
             .map_err(|e| e.to_string())
     })?;
 
@@ -26,7 +26,7 @@ pub fn create(pool: &mut Pool, code: &str) -> Result<ControllerResult, String> {
 #[derive(Serialize, Deserialize, Debug)]
 struct Item {
     code: String,
-    created: String,
+    at: String,
 }
 
 impl FromRow for Item {
@@ -34,7 +34,7 @@ impl FromRow for Item {
     where
         Self: Sized,
     {
-        let (code, created) = from_row(row);
-        Ok(Self { code, created })
+        let (code, at) = from_row(row);
+        Ok(Self { code, at })
     }
 }
