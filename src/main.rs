@@ -2,6 +2,7 @@ use std::net::IpAddr;
 
 use crate::controller::route;
 
+mod cache;
 mod controller;
 mod database;
 mod tcp;
