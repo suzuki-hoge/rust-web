@@ -10,6 +10,6 @@ impl Logger for Stdout {
     fn info<S: Display>(&self, message: S) {
         let now = Local::now().format("%Y/%m/%d %H:%M:%S").to_string();
         let thread = thread::current();
-        println!("{} [{} thread ({})] {}", now, thread.name().unwrap(), thread.id().as_u64(), message);
+        println!("{} [thread {}] {}", now, thread.id().as_u64(), message);
     }
 }

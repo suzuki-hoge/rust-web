@@ -1,4 +1,6 @@
 use serde::Serialize;
+use std::thread;
+use std::time::Duration;
 
 use Method::{Get, Post};
 
@@ -78,6 +80,10 @@ pub fn route(request: &Request) -> Result<ControllerResult, String> {
             Err(e) => Ok(ControllerResult::bad_request(e)),
         },
         (&Get, "/error") => Ok(ControllerResult::internal_server_error("foo error")),
+        (&Get, "/sleep") => {
+            thread::sleep(Duration::from_secs(3));
+            Ok(ControllerResult::ok("3 seconds slept"))
+        }
         _ => Ok(ControllerResult::not_found()),
     }
 }

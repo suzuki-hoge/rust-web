@@ -45,3 +45,6 @@ fix:
 
 500:
 	@curl -sS localhost:9090/error | jq . -c
+
+sleep:
+	@curl -sS localhost:9090/sleep | jq . -c
