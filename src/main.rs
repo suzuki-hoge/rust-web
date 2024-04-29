@@ -14,5 +14,5 @@ mod tcp;
 pub static LOGGER: Stdout = Stdout {};
 
 fn main() -> Result<(), String> {
-    tcp::listener::run(IpAddr::V4("0.0.0.0".parse().unwrap()), 9090, route)
+    tcp::listener::run(IpAddr::V4("0.0.0.0".parse().unwrap()), 9090, route).map_err(|e| e.to_string())
 }

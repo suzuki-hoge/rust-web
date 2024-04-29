@@ -81,7 +81,7 @@ impl Parameter {
             Json { value: _ } => None, // lazy hacking
             Nothing => None,
         }
-        .ok_or(format!("no such parameter [ key = {} ]", key))
+        .ok_or(format!("no such parameter [ {} ]", key))
     }
 }
 

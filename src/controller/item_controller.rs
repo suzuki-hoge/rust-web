@@ -15,10 +15,8 @@ pub fn all(pool: &mut Pool) -> Result<ControllerResult, String> {
 pub fn create(pool: &mut Pool, code: &str) -> Result<ControllerResult, String> {
     let item = Item { code: code.to_owned(), at: Local::now().format("%Y/%m/%d %H:%M:%S").to_string() };
 
-    pool.with_tx(|tx| {
-        tx.exec_drop("insert item ( code, at ) values ( :code, :at )", vec![&item.code, &item.at])
-            .map_err(|e| e.to_string())
-    })?;
+    pool.with_tx(|tx| tx.exec_drop("insert item ( code, at ) values ( :code, :at )", vec![&item.code, &item.at]))
+        .map_err(|e| e.to_string())?;
 
     Ok(ControllerResult::ok(item))
 }

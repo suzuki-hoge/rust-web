@@ -7,28 +7,28 @@ use crate::tcp::request::{parse_request, Request};
 use crate::tcp::response::Response;
 use crate::LOGGER;
 
-pub fn run<F>(ip_addr: IpAddr, port: u16, route: F) -> Result<(), String>
+pub fn run<F>(ip_addr: IpAddr, port: u16, route: F) -> std::io::Result<()>
 where
     F: Fn(&Request) -> Result<ControllerResult, String>,
 {
-    let socket = TcpListener::bind(SocketAddr::new(ip_addr, port)).map_err(|e| e.to_string())?;
+    let socket = TcpListener::bind(SocketAddr::new(ip_addr, port))?;
 
     LOGGER.info("socket start");
-    for stream in socket.incoming() {
-        let stream = stream.map_err(|e| e.to_string())?;
 
+    for stream in socket.incoming() {
+        let stream = stream?;
         handle(stream, &route)?;
     }
 
     Ok(())
 }
 
-fn handle<F>(mut stream: TcpStream, route: &F) -> Result<(), String>
+fn handle<F>(mut stream: TcpStream, route: &F) -> std::io::Result<()>
 where
     F: Fn(&Request) -> Result<ControllerResult, String>,
 {
     let mut buf = [0; 1024];
-    let _ = stream.read(&mut buf).map_err(|e| e.to_string())?;
+    let _ = stream.read(&mut buf)?;
 
     let request = parse_request(String::from_utf8_lossy(&buf[..]));
     LOGGER.info(&request);
@@ -39,8 +39,8 @@ where
     };
     LOGGER.info(&response);
 
-    let _ = stream.write(&response.into_bytes()).map_err(|e| e.to_string())?;
-    stream.flush().map_err(|e| e.to_string())?;
+    let _ = stream.write(&response.into_bytes())?;
+    stream.flush()?;
 
     Ok(())
 }
