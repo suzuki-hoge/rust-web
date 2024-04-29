@@ -10,6 +10,7 @@ mod controller;
 mod database;
 mod logger;
 mod tcp;
+mod thread;
 
 pub static LOGGER: Stdout = Stdout {};
 
