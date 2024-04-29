@@ -32,16 +32,16 @@ fix:
 #
 
 200:
-	@curl -i localhost:9090/item/all
+	@curl -sS localhost:9090/item/all | jq . -c
 
 201:
-	@curl -i -X POST localhost:9090/item/create -d 'code=1234'
+	@curl -sS -X POST localhost:9090/item/create -d 'code=1234' | jq . -c
 
 400:
-	@curl -i -X POST localhost:9090/item/create
+	@curl -sS -X POST localhost:9090/item/create | jq . -c
 
 404:
-	@curl -i localhost:9090/item/foo
+	@curl -sS localhost:9090/item/foo | jq . -c
 
 500:
-	@curl -i localhost:9090/error
+	@curl -sS localhost:9090/error | jq . -c

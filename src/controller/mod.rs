@@ -14,19 +14,57 @@ pub struct ControllerResult {
 
 impl ControllerResult {
     fn ok<S: Serialize>(s: S) -> Self {
-        ControllerResult { status_code: 200, content: serde_json::to_string(&s).unwrap() }
+        ControllerResult { status_code: 200, content: Success::new(s).to_json() }
     }
 
     fn bad_request<S: Into<String>>(s: S) -> Self {
-        ControllerResult { status_code: 400, content: s.into() }
+        ControllerResult { status_code: 400, content: Failure::new(s).to_json() }
     }
 
     fn not_found() -> Self {
-        ControllerResult { status_code: 404, content: String::from("not found") }
+        ControllerResult { status_code: 404, content: Failure::new("not found").to_json() }
     }
 
     fn internal_server_error<S: Into<String>>(s: S) -> Self {
-        ControllerResult { status_code: 500, content: s.into() }
+        ControllerResult { status_code: 500, content: Failure::new(s).to_json() }
+    }
+}
+
+#[derive(Serialize)]
+struct Success<S>
+where
+    S: Serialize,
+{
+    result: String,
+    content: S,
+}
+
+impl<S> Success<S>
+where
+    S: Serialize,
+{
+    fn new(s: S) -> Self {
+        Self { result: String::from("success"), content: s }
+    }
+
+    fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
+    }
+}
+
+#[derive(Serialize)]
+struct Failure {
+    result: String,
+    message: String,
+}
+
+impl Failure {
+    fn new<S: Into<String>>(s: S) -> Self {
+        Self { result: String::from("failure"), message: s.into() }
+    }
+
+    fn to_json(&self) -> String {
+        serde_json::to_string(&self).unwrap()
     }
 }
 
