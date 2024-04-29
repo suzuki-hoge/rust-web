@@ -1,5 +1,6 @@
-use serde::Serialize;
 use std::sync::Arc;
+
+use serde::Serialize;
 
 use Method::{Get, Post};
 
@@ -71,13 +72,14 @@ impl Failure {
 
 pub fn route(pool: Arc<Pool>, request: &Request) -> Result<ControllerResult, String> {
     match (&request.method, request.target.as_str()) {
-        (&Get, "/item/all") => item_controller::all(pool),
-        (&Post, "/item/create") => match request.parameter.get("code") {
-            Ok(code) => item_controller::create(pool, code),
-            Err(e) => Ok(ControllerResult::bad_request(e)),
-        },
+        (&Get, "/read/light") => item_controller::read(pool, false),
+        (&Get, "/read/cache") => item_controller::read(pool, true),
+        (&Post, "/write/light") => item_controller::write(pool, false, request.parameter.get("code")),
+        (&Post, "/write/cache") => item_controller::write(pool, true, request.parameter.get("code")),
+        (&Post, "/write/heavy") => item_controller::block(pool),
+        (&Get, "/thread/light") => item_controller::thread_sleep(0),
+        (&Get, "/thread/heavy") => item_controller::thread_sleep(3),
         (&Get, "/error") => Ok(ControllerResult::internal_server_error("foo error")),
-        (&Get, "/sleep") => item_controller::sleep(pool),
         _ => Ok(ControllerResult::not_found()),
     }
 }

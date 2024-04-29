@@ -10,29 +10,46 @@ use serde::{Deserialize, Serialize};
 use crate::controller::ControllerResult;
 use crate::database::mysql::Pool;
 
-pub fn all(pool: Arc<Pool>) -> Result<ControllerResult, String> {
-    let items: Vec<Item> = pool.select("select code, at from item").map_err(|e| e.to_string())?;
+pub fn read(pool: Arc<Pool>, caching: bool) -> Result<ControllerResult, String> {
+    let items: Vec<Item> = pool.select("select code, at from item", caching).map_err(|e| e.to_string())?;
 
     Ok(ControllerResult::ok(items))
 }
 
-pub fn create(pool: Arc<Pool>, code: &str) -> Result<ControllerResult, String> {
-    let item = Item { code: code.to_owned(), at: Local::now().format("%Y/%m/%d %H:%M:%S").to_string() };
+pub fn write(pool: Arc<Pool>, caching: bool, code: Result<&String, String>) -> Result<ControllerResult, String> {
+    match code {
+        Ok(code) => {
+            let item = Item { code: code.to_owned(), at: Local::now().format("%Y/%m/%d %H:%M:%S").to_string() };
 
-    pool.with_tx(|tx| tx.exec_drop("insert item ( code, at ) values ( :code, :at )", vec![&item.code, &item.at]))
-        .map_err(|e| e.to_string())?;
+            pool.with_tx(
+                |tx| tx.exec_drop("insert item ( code, at ) values ( :code, :at )", vec![&item.code, &item.at]),
+                caching,
+            )
+            .map_err(|e| e.to_string())?;
 
-    Ok(ControllerResult::ok(item))
+            Ok(ControllerResult::ok(item))
+        }
+        Err(e) => Ok(ControllerResult::bad_request(e)),
+    }
 }
 
-pub fn sleep(pool: Arc<Pool>) -> Result<ControllerResult, String> {
-    pool.with_tx(|_| {
-        thread::sleep(Duration::from_secs(3));
-        Ok(())
-    })
+pub fn block(pool: Arc<Pool>) -> Result<ControllerResult, String> {
+    pool.with_tx(
+        |_| {
+            thread::sleep(Duration::from_secs(3));
+            Ok(())
+        },
+        false,
+    )
     .map_err(|e| e.to_string())?;
 
-    Ok(ControllerResult::ok("3 seconds slept"))
+    Ok(ControllerResult::ok("connection slept 3 seconds"))
+}
+
+pub fn thread_sleep(time: u64) -> Result<ControllerResult, String> {
+    thread::sleep(Duration::from_secs(time));
+
+    Ok(ControllerResult::ok(format!("thread slept {} seconds", time)))
 }
 
 #[derive(Serialize, Deserialize, Debug)]

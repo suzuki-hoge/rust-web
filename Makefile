@@ -18,6 +18,9 @@ db:
 run:
 	@cargo run -- --thread 2 --connection 2
 
+build:
+	@cargo build --release
+
 test:
 	@cargo test
 

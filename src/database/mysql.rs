@@ -25,6 +25,7 @@ impl Pool {
         let mut connections = Vec::with_capacity(limit as usize);
         for _ in 0..limit {
             connections.push(Mutex::new(manager.connect().unwrap()));
+            LOGGER.info("create connection");
         }
 
         LOGGER.info(format!("init {} connections", limit));
@@ -32,33 +33,50 @@ impl Pool {
         Self { connections, cache: Memory::new() }
     }
 
-    pub fn select<R>(&self, query: &str) -> mysql::error::Result<Vec<R>>
+    pub fn select<R>(&self, query: &str, caching: bool) -> mysql::error::Result<Vec<R>>
     where
         R: FromRow + Serialize + for<'a> Deserialize<'a>,
     {
-        if let Some(cached) = self.cache.get("item") {
-            LOGGER.info("from cache");
+        if caching {
+            if let Some(cached) = self.cache.get("item") {
+                LOGGER.info("find from cache");
+                Ok(cached)
+            } else {
+                let found = self.no_cache_select(query)?;
 
-            Ok(cached)
+                self.cache.set("item", &found);
+                LOGGER.info("save into cache");
+
+                Ok(found)
+            }
         } else {
-            let mut conn = self.get_conn();
-            let found = conn.query(query)?;
-
-            self.cache.set("item", &found);
-
-            LOGGER.info(format!("from database [ connection = {} ]", conn.connection_id()));
-
-            Ok(found)
+            self.no_cache_select(query)
         }
     }
 
-    pub fn with_tx<F>(&self, mut f: F) -> mysql::error::Result<()>
+    fn no_cache_select<R>(&self, query: &str) -> mysql::error::Result<Vec<R>>
+    where
+        R: FromRow + Serialize + for<'a> Deserialize<'a>,
+    {
+        let mut conn = self.get_conn();
+        LOGGER.info(format!("find from database [connection {}]", conn.connection_id()));
+
+        let found = conn.query(query)?;
+
+        Ok(found)
+    }
+
+    pub fn with_tx<F>(&self, mut f: F, caching: bool) -> mysql::error::Result<()>
     where
         F: FnMut(&mut Transaction) -> mysql::error::Result<()>,
     {
-        self.cache.clear();
+        if caching {
+            self.cache.clear();
+        }
 
         let mut conn = self.get_conn();
+        LOGGER.info(format!("save into database [connection {}]", conn.connection_id()));
+
         let mut tx = conn.start_transaction(TxOpts::default())?;
         f(&mut tx)?;
         tx.commit()

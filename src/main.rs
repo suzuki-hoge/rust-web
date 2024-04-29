@@ -2,10 +2,10 @@
 
 use std::net::IpAddr;
 
+use structopt::StructOpt;
+
 use crate::controller::route;
 use crate::logger::stdout::Stdout;
-
-use structopt::StructOpt;
 
 mod cache;
 mod controller;
@@ -24,9 +24,8 @@ struct Opt {
 
 pub static LOGGER: Stdout = Stdout {};
 
-fn main() -> Result<(), String> {
+fn main() {
     let opt: Opt = Opt::from_args();
 
-    tcp::listener::run(IpAddr::V4("0.0.0.0".parse().unwrap()), 9090, opt.thread, opt.connection, route)
-        .map_err(|e| e.to_string())
+    let _ = tcp::listener::run(IpAddr::V4("0.0.0.0".parse().unwrap()), 9090, opt.thread, opt.connection, route);
 }

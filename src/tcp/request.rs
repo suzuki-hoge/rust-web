@@ -23,7 +23,7 @@ impl Display for Request {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{} {} {}, [{}], {}",
+            "request : {} {} {}, [{}], {}",
             self.method,
             self.target,
             self.version,
