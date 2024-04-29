@@ -1,6 +1,8 @@
-use crate::database::mysql::Pool;
+use serde::Serialize;
+
 use Method::{Get, Post};
 
+use crate::database::mysql::Pool;
 use crate::tcp::request::{Method, Request};
 
 mod item_controller;
@@ -11,8 +13,8 @@ pub struct ControllerResult {
 }
 
 impl ControllerResult {
-    fn ok<S: Into<String>>(s: S) -> Self {
-        ControllerResult { status_code: 200, content: s.into() }
+    fn ok<S: Serialize>(s: S) -> Self {
+        ControllerResult { status_code: 200, content: serde_json::to_string(&s).unwrap() }
     }
 
     fn bad_request<S: Into<String>>(s: S) -> Self {

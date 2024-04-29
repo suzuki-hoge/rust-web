@@ -1495,6 +1495,8 @@ dependencies = [
  "itertools",
  "r2d2_mysql",
  "rstest",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
